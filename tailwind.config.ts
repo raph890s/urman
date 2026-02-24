@@ -12,6 +12,9 @@ export default {
         "2xl": "1400px",
       },
     },
+    fontFamily: {
+      figtree: ['figtree', '"figtree Fallback"', "system-ui", "sans-serif"],
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -80,10 +83,20 @@ export default {
             height: "0",
           },
         },
+        "float-1": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(30px)" },
+        },
+        "float-2": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-30px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "float-1": "float-1 20s ease-in-out infinite",
+        "float-2": "float-2 25s ease-in-out infinite",
       },
     },
   },
