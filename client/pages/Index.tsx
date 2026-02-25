@@ -4,6 +4,9 @@ import TestimonialsSection from "@/components/TestimonialsSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import CustomerQuoteSection from "@/components/CustomerQuoteSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
+import FAQSection from "@/components/FAQSection";
+import CTASection from "@/components/CTASection";
+import Footer from "@/components/Footer";
 
 export default function Index() {
   return (
@@ -14,6 +17,9 @@ export default function Index() {
       <FeaturesSection />
       <CustomerQuoteSection />
       <HowItWorksSection />
+      <FAQSection />
+      <CTASection />
+      <Footer />
     </main>
   );
 }
