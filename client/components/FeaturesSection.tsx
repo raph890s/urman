@@ -8,25 +8,11 @@ interface FeatureProps {
 
 function FeatureCard({ badge, title, description, image, alt, animationIndex }: FeatureProps & { animationIndex: number }) {
   const animationClass = animationIndex % 2 === 0 ? "animate-float-1" : "animate-float-2";
-  
+
   return (
-    <div className="flex gap-8 items-start py-8 md:py-10">
-      {/* Left Column - Text Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Badge */}
-        <div className="inline-block mb-4 w-fit">
-          <span className="inline-block px-4 py-0.5 rounded-full bg-gradient-to-r from-[#6d6d6d] to-[#4d4d4d] text-white text-sm font-medium shadow-md">
-            {badge}
-          </span>
-        </div>
-
-        {/* Title and Description */}
-        <h2 className="text-3xl font-bold text-[#6d6d6d] mb-4">{title}</h2>
-        <p className="text-xl text-[#6d6d6d]">{description}</p>
-      </div>
-
-      {/* Right Column - Image with Animation */}
-      <div className={`flex-shrink-0 w-64 h-auto ${animationClass}`}>
+    <div className="flex flex-col md:flex-row gap-8 md:items-start py-8 md:py-10">
+      {/* Image - Top on mobile, Right on desktop */}
+      <div className={`w-full md:w-64 md:flex-shrink-0 h-auto ${animationClass}`}>
         <div className="rounded-xl bg-white/25 p-2 shadow-md">
           <div className="rounded-lg border border-[#dcd8cc] overflow-hidden bg-gradient-to-b from-[#ece9e2] to-[#e8e6dd]">
             <img
@@ -37,6 +23,20 @@ function FeatureCard({ badge, title, description, image, alt, animationIndex }: 
             />
           </div>
         </div>
+      </div>
+
+      {/* Text Content - Below image on mobile, Left on desktop */}
+      <div className="flex-1 flex flex-col">
+        {/* Badge */}
+        <div className="inline-block mb-4 w-fit">
+          <span className="inline-block px-4 py-0.5 rounded-full bg-gradient-to-r from-[#6d6d6d] to-[#4d4d4d] text-white text-sm font-medium shadow-md">
+            {badge}
+          </span>
+        </div>
+
+        {/* Title and Description */}
+        <h2 className="text-2xl md:text-3xl font-bold text-[#6d6d6d] mb-4">{title}</h2>
+        <p className="text-lg md:text-xl text-[#6d6d6d]">{description}</p>
       </div>
     </div>
   );

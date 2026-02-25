@@ -62,9 +62,9 @@ export default function HowItWorksSection() {
   return (
     <section className="bg-background py-16 md:py-20">
       <div className="mx-auto max-w-6xl px-6">
-        <div className="grid grid-cols-2 gap-12">
+        <div className="flex flex-col gap-12">
           {/* First Row - Brainstorm Ideas Section */}
-          <div className="col-span-2 grid grid-cols-2 gap-12">
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-12">
             {/* Testimonial */}
             <div>
               <TestimonialBlock
@@ -78,10 +78,10 @@ export default function HowItWorksSection() {
 
             {/* Brainstorm Ideas Features */}
             <div>
-              <h2 className="text-3xl font-bold text-[#333333] mb-6">
+              <h2 className="text-2xl md:text-3xl font-bold text-[#333333] mb-6">
                 Brainstorm ideas
               </h2>
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FeatureBlock
                   icon={<Users size={24} />}
                   title="Real problems from real people"
