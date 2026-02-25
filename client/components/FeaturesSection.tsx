@@ -6,31 +6,38 @@ interface FeatureProps {
   alt: string;
 }
 
-function FeatureCard({ badge, title, description, image, alt }: FeatureProps) {
+function FeatureCard({ badge, title, description, image, alt, animationIndex }: FeatureProps & { animationIndex: number }) {
+  const animationClass = animationIndex % 2 === 0 ? "animate-float-1" : "animate-float-2";
+  
   return (
-    <div className="flex flex-col py-8">
-      {/* Image Container */}
-      <div className="mb-8 rounded-xl bg-white/25 p-2 shadow-md">
-        <div className="rounded-lg border border-[#dcd8cc] overflow-hidden bg-gradient-to-b from-[#ece9e2] to-[#e8e6dd]">
-          <img
-            src={image}
-            alt={alt}
-            loading="lazy"
-            className="w-full h-auto object-cover"
-          />
+    <div className="flex gap-8 items-start py-8 md:py-10">
+      {/* Left Column - Text Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Badge */}
+        <div className="inline-block mb-4 w-fit">
+          <span className="inline-block px-4 py-0.5 rounded-full bg-gradient-to-r from-[#6d6d6d] to-[#4d4d4d] text-white text-sm font-medium shadow-md">
+            {badge}
+          </span>
+        </div>
+
+        {/* Title and Description */}
+        <h2 className="text-3xl font-bold text-[#6d6d6d] mb-4">{title}</h2>
+        <p className="text-xl text-[#6d6d6d]">{description}</p>
+      </div>
+
+      {/* Right Column - Image with Animation */}
+      <div className={`flex-shrink-0 w-64 h-auto ${animationClass}`}>
+        <div className="rounded-xl bg-white/25 p-2 shadow-md">
+          <div className="rounded-lg border border-[#dcd8cc] overflow-hidden bg-gradient-to-b from-[#ece9e2] to-[#e8e6dd]">
+            <img
+              src={image}
+              alt={alt}
+              loading="lazy"
+              className="w-full h-auto object-cover"
+            />
+          </div>
         </div>
       </div>
-
-      {/* Badge */}
-      <div className="inline-block mb-4">
-        <span className="inline-block px-4 py-0.5 rounded-full bg-gradient-to-r from-[#6d6d6d] to-[#4d4d4d] text-white text-sm font-medium shadow-md">
-          {badge}
-        </span>
-      </div>
-
-      {/* Title and Description */}
-      <h2 className="text-3xl font-bold text-[#6d6d6d] mb-4">{title}</h2>
-      <p className="text-xl text-[#6d6d6d]">{description}</p>
     </div>
   );
 }
@@ -89,36 +96,11 @@ export default function FeaturesSection() {
 
   return (
     <section className="bg-background py-16 md:py-20">
-      <div className="mx-auto max-w-4xl px-6">
-        <div className="flex gap-10">
-          {/* Left Column - Features List */}
-          <div className="w-1/2">
-            {features.map((feature, index) => (
-              <FeatureCard key={index} {...feature} />
-            ))}
-          </div>
-
-          {/* Right Column - Sticky Images */}
-          <div className="w-1/2 hidden md:flex justify-end">
-            <div className="flex justify-end sticky top-1/2 -translate-y-1/2 -mb-16 mt-28">
-              <div className="rounded-2xl bg-white/25 p-2 shadow-md">
-                <div className="rounded-lg border border-[#dcd8cc] overflow-hidden bg-gradient-to-b from-[#ece9e2] to-[#e8e6dd] relative w-96 h-96">
-                  {features.map((feature, index) => (
-                    <img
-                      key={index}
-                      src={feature.image}
-                      alt={feature.alt}
-                      loading="lazy"
-                      className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
-                      style={{
-                        opacity: index === 3 ? 1 : 0,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="mx-auto max-w-6xl px-6">
+        <div className="flex flex-col">
+          {features.map((feature, index) => (
+            <FeatureCard key={index} {...feature} animationIndex={index} />
+          ))}
         </div>
       </div>
     </section>
