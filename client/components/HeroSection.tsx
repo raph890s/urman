@@ -6,8 +6,8 @@ export default function HeroSection() {
 
   return (
     <div className="relative min-h-screen pt-20 overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
+      {/* Background Elements - Hidden on mobile */}
+      <div className="absolute inset-0 pointer-events-none hidden md:block">
         {/* Floating Card - Market Research (Top Left) */}
         <div className="absolute left-4 md:left-[4%] top-[18%] w-56 animate-float-1 pointer-events-none">
           <div className="bg-card rounded-lg border border-border shadow-sm p-3">
