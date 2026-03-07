@@ -1,11 +1,13 @@
+'use client';
+
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wand2, Copy, Download } from 'lucide-react';
+import type { MarketingContentResult } from '../../lib/types';
 
 export default function MarketingContentGenerator() {
   const [contentType, setContentType] = useState('social');
@@ -15,26 +17,47 @@ export default function MarketingContentGenerator() {
     length: 'medium',
   });
   const [generating, setGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState('');
+  const [result, setResult] = useState<MarketingContentResult | null>(null);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleGenerate = async () => {
     setGenerating(true);
-    // Simulate API call
-    setTimeout(() => {
-      setGeneratedContent(
-        'This is sample generated content. In a production environment, this would be AI-generated marketing copy tailored to your specifications.'
-      );
+    setError('');
+    try {
+      const res = await fetch('/api/ai/generate-marketing-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, contentType }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Failed to generate content');
+        return;
+      }
+      setResult(data);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
       setGenerating(false);
-    }, 1500);
+    }
   };
+
+  const getDisplayContent = (): string[] => {
+    if (!result) return [];
+    switch (contentType) {
+      case 'social': return [...(result.twitter_posts || []), ...(result.linkedin_posts || [])];
+      case 'email': return result.email_subject_lines || [];
+      case 'blog': return result.blog_post_titles || [];
+      default: return [...(result.twitter_posts || [])];
+    }
+  };
+
+  const displayContent = getDisplayContent();
 
   return (
     <DashboardLayout currentPage="marketing-gen">
@@ -80,16 +103,14 @@ export default function MarketingContentGenerator() {
                     placeholder="Describe the topic or product you want content about..."
                     rows={4}
                     value={formData.topic}
-                    onChange={handleChange}
+                    onChange={e => setFormData(prev => ({ ...prev, topic: e.target.value }))}
                   />
                 </div>
 
                 {/* Tone and Length */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Tone
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-2">Tone</label>
                     <select
                       name="tone"
                       value={formData.tone}
@@ -105,9 +126,7 @@ export default function MarketingContentGenerator() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Length
-                    </label>
+                    <label className="block text-sm font-medium text-foreground mb-2">Length</label>
                     <select
                       name="length"
                       value={formData.length}
@@ -120,6 +139,10 @@ export default function MarketingContentGenerator() {
                     </select>
                   </div>
                 </div>
+
+                {error && (
+                  <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+                )}
 
                 {/* Generate Button */}
                 <Button
@@ -149,29 +172,22 @@ export default function MarketingContentGenerator() {
                 <CardTitle className="text-lg">Generated Content</CardTitle>
               </CardHeader>
               <CardContent>
-                {generatedContent ? (
+                {displayContent.length > 0 ? (
                   <div className="space-y-4">
-                    <div className="p-4 bg-muted/50 rounded-lg min-h-48 text-sm text-foreground whitespace-pre-wrap">
-                      {generatedContent}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 gap-2"
-                        onClick={() => navigator.clipboard.writeText(generatedContent)}
-                      >
-                        <Copy className="w-4 h-4" />
-                        Copy
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    {displayContent.map((item, idx) => (
+                      <div key={idx} className="p-3 bg-muted/50 rounded-lg text-sm text-foreground">
+                        {item}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="mt-1 h-6 text-xs"
+                          onClick={() => navigator.clipboard.writeText(item)}
+                        >
+                          <Copy className="w-3 h-3 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="h-48 flex items-center justify-center text-center text-muted-foreground">
@@ -186,15 +202,44 @@ export default function MarketingContentGenerator() {
           </div>
 
           {/* Previous Generations */}
-          {generatedContent && (
+          {result && (
             <Card className="mt-8">
               <CardHeader>
-                <CardTitle>Previous Generations</CardTitle>
+                <CardTitle>All Generated Content</CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Your previous content generations will be listed here for easy access and editing.
-                </p>
+              <CardContent className="space-y-6">
+                {result.twitter_posts?.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Twitter / X Posts</p>
+                    {result.twitter_posts.map((p, i) => (
+                      <p key={i} className="text-sm text-foreground border-b pb-2 mb-2">{p}</p>
+                    ))}
+                  </div>
+                )}
+                {result.linkedin_posts?.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">LinkedIn Posts</p>
+                    {result.linkedin_posts.map((p, i) => (
+                      <p key={i} className="text-sm text-foreground border-b pb-2 mb-2">{p}</p>
+                    ))}
+                  </div>
+                )}
+                {result.email_subject_lines?.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Email Subject Lines</p>
+                    {result.email_subject_lines.map((p, i) => (
+                      <p key={i} className="text-sm text-foreground border-b pb-2 mb-2">{p}</p>
+                    ))}
+                  </div>
+                )}
+                {result.blog_post_titles?.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground mb-2">Blog Post Titles</p>
+                    {result.blog_post_titles.map((p, i) => (
+                      <p key={i} className="text-sm text-foreground border-b pb-2 mb-2">{p}</p>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}

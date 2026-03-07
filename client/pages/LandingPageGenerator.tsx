@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -5,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Wand2, ArrowRight } from 'lucide-react';
+import type { LandingPageResult } from '../../lib/types';
 
 export default function LandingPageGenerator() {
   const [formData, setFormData] = useState({
@@ -14,22 +17,34 @@ export default function LandingPageGenerator() {
     uniqueValue: '',
   });
   const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState<LandingPageResult | null>(null);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleGenerate = async () => {
     setGenerating(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError('');
+    try {
+      const res = await fetch('/api/ai/generate-landing-page', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Failed to generate landing page');
+        return;
+      }
+      setResult(data);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
       setGenerating(false);
-      // Could navigate to preview or show results
-    }, 2000);
+    }
   };
 
   return (
@@ -101,6 +116,10 @@ export default function LandingPageGenerator() {
                 </div>
               </div>
 
+              {error && (
+                <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+              )}
+
               {/* Generate Button */}
               <Button
                 onClick={handleGenerate}
@@ -123,6 +142,51 @@ export default function LandingPageGenerator() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Generated Preview */}
+          {result && (
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="text-lg">Generated Copy</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Hero Headline</p>
+                    <p className="text-xl font-bold text-foreground">{result.hero_headline}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Subheadline</p>
+                    <p className="text-foreground">{result.hero_subheadline}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Features</p>
+                    <ul className="space-y-1">
+                      {result.features.map((f, i) => (
+                        <li key={i} className="text-sm text-foreground">
+                          <span className="font-medium">{f.title}:</span> {f.description}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="flex gap-4">
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Primary CTA</p>
+                      <p className="text-sm font-medium text-accent">{result.cta_primary}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Secondary CTA</p>
+                      <p className="text-sm text-foreground">{result.cta_secondary}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Social Proof</p>
+                    <p className="text-sm italic text-foreground">{result.social_proof_line}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Templates Preview */}
           <Card>

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -5,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import type { IdeaValidationResult } from '../../lib/types';
 
 export default function IdeaValidator() {
   const [formData, setFormData] = useState({
@@ -14,30 +17,38 @@ export default function IdeaValidator() {
     targetMarket: '',
   });
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<IdeaValidationResult | null>(null);
+  const [error, setError] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleAnalyze = async () => {
     setAnalyzing(true);
-    setTimeout(() => {
-      setAnalysis({
-        score: 72,
-        feedback: [
-          { type: 'strength', text: 'Clear problem identification' },
-          { type: 'strength', text: 'Well-defined target market' },
-          { type: 'opportunity', text: 'Consider differentiating from competitors' },
-          { type: 'opportunity', text: 'Business model could be more specific' },
-        ],
+    setError('');
+    try {
+      const res = await fetch('/api/ai/validate-idea', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error === 'limit_reached') {
+          setError(`${data.message} (${data.remaining}/${data.limit} used this month)`);
+        } else {
+          setError(data.message || 'Failed to validate idea');
+        }
+        return;
+      }
+      setAnalysis(data);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
       setAnalyzing(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -109,6 +120,12 @@ export default function IdeaValidator() {
                   />
                 </div>
 
+                {error && (
+                  <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                    {error}
+                  </p>
+                )}
+
                 <Button
                   onClick={handleAnalyze}
                   disabled={!formData.ideaTitle || !formData.problem || !formData.solution || analyzing}
@@ -140,12 +157,12 @@ export default function IdeaValidator() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-center">
-                        <div className="text-5xl font-bold text-accent mb-2">{analysis.score}</div>
+                        <div className="text-5xl font-bold text-accent mb-2">{analysis.validation_score}</div>
                         <p className="text-sm text-muted-foreground">out of 100</p>
                         <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
                           <div
                             className="bg-accent h-full transition-all"
-                            style={{ width: `${analysis.score}%` }}
+                            style={{ width: `${analysis.validation_score}%` }}
                           />
                         </div>
                       </div>
@@ -154,19 +171,39 @@ export default function IdeaValidator() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Feedback</CardTitle>
+                      <CardTitle className="text-lg">Market Size</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-foreground">{analysis.market_size}</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Strengths & Risks</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {analysis.feedback.map((item: any, idx: number) => (
+                      {analysis.top_3_opportunities.map((item, idx) => (
                         <div key={idx} className="flex gap-3">
-                          {item.type === 'strength' ? (
-                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                          )}
-                          <p className="text-sm text-foreground">{item.text}</p>
+                          <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-foreground">{item}</p>
                         </div>
                       ))}
+                      {analysis.top_3_risks.map((item, idx) => (
+                        <div key={idx} className="flex gap-3">
+                          <AlertCircle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-foreground">{item}</p>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Recommendation</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-foreground">{analysis.recommendation}</p>
                     </CardContent>
                   </Card>
                 </>

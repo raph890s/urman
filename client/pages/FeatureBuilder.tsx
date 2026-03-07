@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -5,15 +7,25 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Zap, GripVertical } from 'lucide-react';
+import type { FeatureSuggestion } from '../../lib/types';
+
+interface Feature {
+  id: number;
+  name: string;
+  description: string;
+  priority: string;
+}
 
 export default function FeatureBuilder() {
-  const [features, setFeatures] = useState([
+  const [features, setFeatures] = useState<Feature[]>([
     { id: 1, name: 'User Authentication', description: 'Secure login system', priority: 'high' },
     { id: 2, name: 'Dashboard Analytics', description: 'Real-time data visualization', priority: 'medium' },
     { id: 3, name: 'Export to PDF', description: 'Generate PDF reports', priority: 'medium' },
   ]);
 
   const [newFeature, setNewFeature] = useState({ name: '', description: '', priority: 'medium' });
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
 
   const addFeature = () => {
     if (newFeature.name.trim()) {
@@ -24,6 +36,36 @@ export default function FeatureBuilder() {
 
   const removeFeature = (id: number) => {
     setFeatures(features.filter(f => f.id !== id));
+  };
+
+  const handleAISuggest = async () => {
+    setGenerating(true);
+    setError('');
+    try {
+      const context = features.map(f => `${f.name}: ${f.description}`).join('\n');
+      const res = await fetch('/api/ai/generate-features', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context, existingFeatures: features.map(f => f.name) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || 'Failed to generate feature suggestions');
+        return;
+      }
+      const suggestions: FeatureSuggestion[] = Array.isArray(data) ? data : data.features || [];
+      const newOnes: Feature[] = suggestions.map((s: FeatureSuggestion, i: number) => ({
+        id: Date.now() + i,
+        name: s.name,
+        description: s.description,
+        priority: s.priority || 'medium',
+      }));
+      setFeatures(prev => [...prev, ...newOnes]);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
@@ -41,10 +83,23 @@ export default function FeatureBuilder() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             {/* Feature List */}
             <Card className="lg:col-span-2">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Your Features</CardTitle>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleAISuggest}
+                  disabled={generating}
+                  className="gap-2"
+                >
+                  <Zap className="w-4 h-4" />
+                  {generating ? 'Generating...' : 'AI Suggest'}
+                </Button>
               </CardHeader>
               <CardContent className="space-y-3">
+                {error && (
+                  <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+                )}
                 {features.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-8 text-center">
                     No features added yet. Start by creating your first feature.
