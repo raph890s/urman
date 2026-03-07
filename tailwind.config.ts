@@ -61,6 +61,11 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      spacing: {
+        "sidebar": "280px",
+        "sidebar-mobile": "240px",
+        "top-bar": "64px",
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
