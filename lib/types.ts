@@ -92,3 +92,41 @@ export interface CheckoutResponse {
 export interface PortalResponse {
   url: string;
 }
+
+// --- User profile / settings ---
+
+export interface UserProfileResponse {
+  email: string;
+  full_name: string | null;
+  company: string | null;
+  startup_name: string | null;
+  plan_tier: PlanTier;
+  notification_preferences: {
+    emailNotifications: boolean;
+    projectUpdates: boolean;
+    weeklyDigest: boolean;
+    marketingEmails: boolean;
+  };
+}
+
+// --- Analytics ---
+
+export interface UserAnalyticsResponse {
+  idea_validations_count: number;
+  content_generated_count: number;
+  launch_plans_count: number;
+  plan_tier: PlanTier;
+  feature_usage: { feature_name: string; count: number }[];
+  monthly_usage: { month: string; count: number }[];
+}
+
+// --- AI Chat ---
+
+export interface ChatPayload {
+  message: string;
+  history?: { role: 'user' | 'ai'; content: string }[];
+}
+
+export interface ChatResponse {
+  reply: string;
+}

@@ -39,17 +39,34 @@ export default function DashboardAIPanel() {
     setInput('');
     setLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: input,
+          history: messages.slice(-6).map(m => ({ role: m.type, content: m.content })),
+        }),
+      });
+      const data = await res.json();
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: 'I\'m processing your request. This is a placeholder response. In production, this would be connected to your AI service.',
+        content: res.ok ? data.reply : (data.error ?? 'Something went wrong. Please try again.'),
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, aiMessage]);
+    } catch {
+      const errMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: 'Network error. Please check your connection and try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errMessage]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (

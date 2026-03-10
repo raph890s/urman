@@ -1,18 +1,56 @@
-import React, { useState } from 'react';
+'use client';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, Users, Zap, Target } from 'lucide-react';
+import { Lightbulb, FileText, Rocket, CreditCard } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import type { UserAnalyticsResponse } from '../../lib/types';
+
+const FEATURE_LABELS: Record<string, string> = {
+  validate_idea: 'Idea Validator',
+  generate_landing_page: 'Landing Page',
+  generate_features: 'Feature Builder',
+  generate_launch_plan: 'Launch Plan',
+  generate_marketing_content: 'Marketing',
+  generate_affiliate_strategy: 'Affiliate',
+};
+
+const Skeleton = () => <div className="animate-pulse bg-muted rounded-lg h-8 w-24" />;
 
 export default function Analytics() {
-  const [timeRange, setTimeRange] = useState('month');
+  const [analytics, setAnalytics] = useState<UserAnalyticsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const metrics = [
-    { label: 'Total Users', value: '1,234', change: '+12%', icon: Users, positive: true },
-    { label: 'Projects Created', value: '342', change: '+8%', icon: Zap, positive: true },
-    { label: 'Avg. Engagement', value: '67%', change: '-3%', icon: Target, positive: false },
-    { label: 'Growth Rate', value: '24%', change: '+5%', icon: TrendingUp, positive: true },
+  useEffect(() => {
+    fetch('/api/user/analytics')
+      .then(r => r.json())
+      .then(data => { setAnalytics(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const metricCards = [
+    {
+      label: 'Ideas Validated',
+      value: analytics?.idea_validations_count ?? 0,
+      icon: <Lightbulb className="w-5 h-5 text-accent" />,
+    },
+    {
+      label: 'Content Generated',
+      value: analytics?.content_generated_count ?? 0,
+      icon: <FileText className="w-5 h-5 text-blue-500" />,
+    },
+    {
+      label: 'Launch Plans',
+      value: analytics?.launch_plans_count ?? 0,
+      icon: <Rocket className="w-5 h-5 text-green-500" />,
+    },
+    {
+      label: 'Plan',
+      value: analytics?.plan_tier
+        ? analytics.plan_tier.charAt(0).toUpperCase() + analytics.plan_tier.slice(1)
+        : '—',
+      icon: <CreditCard className="w-5 h-5 text-yellow-500" />,
+    },
   ];
 
   return (
@@ -20,131 +58,140 @@ export default function Analytics() {
       <div className="flex-1 overflow-auto bg-background">
         <div className="p-4 md:p-6 lg:p-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 md:mb-2">Analytics</h1>
-              <p className="text-sm md:text-base text-muted-foreground">Track your product performance and user metrics.</p>
-            </div>
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="week">Last 7 Days</SelectItem>
-                <SelectItem value="month">Last 30 Days</SelectItem>
-                <SelectItem value="quarter">Last 90 Days</SelectItem>
-                <SelectItem value="year">Last Year</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 md:mb-2">Analytics</h1>
+            <p className="text-sm md:text-base text-muted-foreground">Your AI usage stats and feature activity.</p>
           </div>
 
           {/* Metrics Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-            {metrics.map(metric => {
-              const Icon = metric.icon;
-              return (
-                <Card key={metric.label}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-medium text-muted-foreground">
-                        {metric.label}
-                      </CardTitle>
-                      <Icon className="w-5 h-5 text-accent" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-foreground mb-1">{metric.value}</p>
-                    <p className={`text-xs font-medium ${metric.positive ? 'text-green-600' : 'text-red-600'}`}>
-                      {metric.change}
-                    </p>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {metricCards.map(metric => (
+              <Card key={metric.label}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      {metric.label}
+                    </CardTitle>
+                    {metric.icon}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? <Skeleton /> : (
+                    <p className="text-3xl font-bold text-foreground">{metric.value}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* User Growth Chart */}
+            {/* AI Usage Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>User Growth</CardTitle>
+                <CardTitle>AI Usage — Last 6 Months</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-end justify-between gap-2 bg-muted/50 rounded-lg p-4">
-                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'].map((month, idx) => (
-                    <div key={month} className="flex flex-col items-center flex-1">
-                      <div
-                        className="w-full bg-accent rounded-t-lg transition-all"
-                        style={{ height: `${Math.random() * 100 + 50}px` }}
-                      />
-                      <span className="text-xs text-muted-foreground mt-2">{month}</span>
-                    </div>
-                  ))}
-                </div>
+                {loading ? (
+                  <div className="h-64 flex items-center justify-center bg-muted/50 rounded-lg animate-pulse" />
+                ) : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart
+                      data={analytics?.monthly_usage ?? []}
+                      margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                    >
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} name="AI calls" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
               </CardContent>
             </Card>
 
-            {/* Engagement Pie Chart */}
+            {/* Feature Usage Breakdown */}
             <Card>
               <CardHeader>
                 <CardTitle>Engagement by Feature</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-center justify-center">
-                  <div className="relative w-32 h-32">
-                    <svg viewBox="0 0 100 100" className="w-full h-full">
-                      <circle cx="50" cy="50" r="45" fill="#f2f1ec" stroke="#b85c44" strokeWidth="25" />
-                      <circle cx="50" cy="50" r="45" fill="#b85c44" stroke="#8b4513" strokeWidth="25"
-                        strokeDasharray="70.7 141.4" strokeDashoffset="0" />
-                    </svg>
+                {loading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="animate-pulse h-8 bg-muted rounded-lg" />
+                    ))}
                   </div>
-                </div>
-                <div className="space-y-2 mt-4">
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Dashboard</span>
-                    <span className="font-medium">45%</span>
+                ) : analytics?.feature_usage?.length ? (
+                  <div className="space-y-4">
+                    {analytics.feature_usage.slice(0, 6).map(f => {
+                      const max = analytics.feature_usage[0].count;
+                      return (
+                        <div key={f.feature_name}>
+                          <div className="flex justify-between items-center mb-1">
+                            <p className="text-sm font-medium text-foreground">
+                              {FEATURE_LABELS[f.feature_name] ?? f.feature_name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">{f.count} calls</p>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div
+                              className="bg-accent rounded-full h-2 transition-all"
+                              style={{ width: `${(f.count / max) * 100}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Generators</span>
-                    <span className="font-medium">35%</span>
+                ) : (
+                  <div className="h-48 flex items-center justify-center">
+                    <p className="text-sm text-muted-foreground">No feature usage yet.</p>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span>Analytics</span>
-                    <span className="font-medium">20%</span>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Top Content */}
+          {/* Most Used Features */}
           <Card>
             <CardHeader>
               <CardTitle>Most Used Features</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {[
-                  { name: 'Landing Page Generator', users: '234', percentage: 78 },
-                  { name: 'Marketing Content', users: '189', percentage: 63 },
-                  { name: 'Idea Validator', users: '156', percentage: 52 },
-                  { name: 'Analytics Dashboard', users: '123', percentage: 41 },
-                ].map(feature => (
-                  <div key={feature.name}>
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="text-sm font-medium text-foreground">{feature.name}</p>
-                      <p className="text-sm text-muted-foreground">{feature.users} users</p>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2">
-                      <div
-                        className="bg-accent rounded-full h-2 transition-all"
-                        style={{ width: `${feature.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="animate-pulse h-8 bg-muted rounded-lg" />
+                  ))}
+                </div>
+              ) : analytics?.feature_usage?.length ? (
+                <div className="space-y-4">
+                  {analytics.feature_usage.map(f => {
+                    const max = analytics.feature_usage[0].count;
+                    return (
+                      <div key={f.feature_name}>
+                        <div className="flex justify-between items-center mb-2">
+                          <p className="text-sm font-medium text-foreground">
+                            {FEATURE_LABELS[f.feature_name] ?? f.feature_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{f.count} calls</p>
+                        </div>
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-accent rounded-full h-2 transition-all"
+                            style={{ width: `${(f.count / max) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No AI features used yet.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>

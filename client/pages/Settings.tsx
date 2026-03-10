@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
+'use client';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Settings() {
+  const { toast } = useToast();
+
   const [formData, setFormData] = useState({
-    fullName: 'Total Michael',
-    email: 'total@example.com',
-    company: 'URMAN Inc.',
+    fullName: '',
+    email: '',
+    company: '',
   });
 
   const [preferences, setPreferences] = useState({
@@ -20,19 +25,79 @@ export default function Settings() {
     marketingEmails: false,
   });
 
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [savingAccount, setSavingAccount] = useState(false);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/user/profile')
+      .then(r => r.json())
+      .then(data => {
+        setFormData({
+          fullName: data.full_name ?? '',
+          email: data.email ?? '',
+          company: data.company ?? '',
+        });
+        if (data.notification_preferences) {
+          setPreferences(data.notification_preferences);
+        }
+      })
+      .catch(() => {/* silently fail */})
+      .finally(() => setLoadingProfile(false));
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handlePreferenceChange = (key: string) => {
-    setPreferences(prev => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setPreferences(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
+  };
+
+  const saveAccount = async () => {
+    setSavingAccount(true);
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: formData.fullName,
+          email: formData.email,
+          company: formData.company,
+        }),
+      });
+      if (res.ok) {
+        toast({ title: 'Account updated', description: 'Your changes have been saved.' });
+      } else {
+        const data = await res.json();
+        toast({ title: 'Error', description: data.error ?? 'Failed to save.', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error. Please try again.', variant: 'destructive' });
+    } finally {
+      setSavingAccount(false);
+    }
+  };
+
+  const savePreferences = async () => {
+    setSavingPrefs(true);
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_preferences: preferences }),
+      });
+      if (res.ok) {
+        toast({ title: 'Preferences saved', description: 'Notification settings updated.' });
+      } else {
+        toast({ title: 'Error', description: 'Failed to save preferences.', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error. Please try again.', variant: 'destructive' });
+    } finally {
+      setSavingPrefs(false);
+    }
   };
 
   return (
@@ -59,43 +124,56 @@ export default function Settings() {
                   <CardTitle>Account Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Full Name
-                    </label>
-                    <Input
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleChange}
-                    />
-                  </div>
+                  {loadingProfile ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Full Name
+                        </label>
+                        <Input
+                          name="fullName"
+                          value={formData.fullName}
+                          onChange={handleChange}
+                        />
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Email Address
-                    </label>
-                    <Input
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                    />
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Email Address
+                        </label>
+                        <Input
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                        />
+                      </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Company Name
-                    </label>
-                    <Input
-                      name="company"
-                      value={formData.company}
-                      onChange={handleChange}
-                    />
-                  </div>
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Company Name
+                        </label>
+                        <Input
+                          name="company"
+                          value={formData.company}
+                          onChange={handleChange}
+                        />
+                      </div>
 
-                  <Button className="bg-accent hover:bg-accent/90">
-                    Save Changes
-                  </Button>
+                      <Button
+                        className="bg-accent hover:bg-accent/90"
+                        onClick={saveAccount}
+                        disabled={savingAccount}
+                      >
+                        {savingAccount && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        Save Changes
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -125,7 +203,12 @@ export default function Settings() {
                     </div>
                   ))}
 
-                  <Button className="bg-accent hover:bg-accent/90 mt-4">
+                  <Button
+                    className="bg-accent hover:bg-accent/90 mt-4"
+                    onClick={savePreferences}
+                    disabled={savingPrefs}
+                  >
+                    {savingPrefs && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     Save Preferences
                   </Button>
                 </CardContent>

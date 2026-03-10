@@ -38,13 +38,13 @@ export default function Navigation() {
 
             <div className="flex gap-3 items-center">
               <a
-                href="/"
+                href="/auth/login"
                 className="px-4 py-2 text-sm font-medium rounded-md border border-border hover:bg-muted transition-colors"
               >
                 Sign in
               </a>
               <a
-                href="/"
+                href="/auth/signup"
                 className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Sign up
@@ -75,13 +75,13 @@ export default function Navigation() {
             </a>
             <div className="flex gap-3 pt-2">
               <a
-                href="/"
+                href="/auth/login"
                 className="flex-1 px-4 py-2 text-sm font-medium text-center rounded-md border border-border hover:bg-muted transition-colors"
               >
                 Sign in
               </a>
               <a
-                href="/"
+                href="/auth/signup"
                 className="flex-1 px-4 py-2 text-sm font-medium text-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 Sign up

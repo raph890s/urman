@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
+'use client';
+import React, { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Target, Users, MessageSquare, Lightbulb } from 'lucide-react';
+import { TrendingUp, Target, Users, MessageSquare, Lightbulb, Lock, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import type { AffiliateStrategyResult } from '../../lib/types';
 
 export default function GrowthAdvisor() {
+  const { toast } = useToast();
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
+  const [creatingPlan, setCreatingPlan] = useState(false);
+  const [planTier, setPlanTier] = useState<string>('free');
+  const [loadingAffiliate, setLoadingAffiliate] = useState(false);
+  const [affiliateData, setAffiliateData] = useState<AffiliateStrategyResult | null>(null);
+
+  useEffect(() => {
+    fetch('/api/user/analytics')
+      .then(r => r.json())
+      .then(data => { if (data.plan_tier) setPlanTier(data.plan_tier); })
+      .catch(() => {});
+  }, []);
 
   const growthAreas = [
     {
@@ -64,6 +79,52 @@ export default function GrowthAdvisor() {
 
   const selectedData = growthAreas.find(a => a.id === selectedArea);
   const Icon = selectedData ? selectedData.icon : Lightbulb;
+  const canUseAffiliate = planTier === 'pro' || planTier === 'agency';
+
+  const createActionPlan = async () => {
+    setCreatingPlan(true);
+    try {
+      const res = await fetch('/api/ai/generate-launch-plan', { method: 'POST' });
+      if (res.ok) {
+        toast({
+          title: 'Launch plan saved!',
+          description: 'Check your Launch Checklist in the dashboard.',
+        });
+      } else {
+        const data = await res.json();
+        toast({
+          title: 'Error',
+          description: data.error ?? 'Failed to create action plan.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error. Please try again.', variant: 'destructive' });
+    } finally {
+      setCreatingPlan(false);
+    }
+  };
+
+  const generateAffiliateStrategy = async () => {
+    setLoadingAffiliate(true);
+    try {
+      const res = await fetch('/api/ai/generate-affiliate-strategy', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setAffiliateData(data);
+      } else {
+        toast({
+          title: 'Error',
+          description: data.error ?? 'Failed to generate affiliate strategy.',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Network error. Please try again.', variant: 'destructive' });
+    } finally {
+      setLoadingAffiliate(false);
+    }
+  };
 
   return (
     <DashboardLayout currentPage="growth-advisor">
@@ -162,7 +223,12 @@ export default function GrowthAdvisor() {
                       </div>
                     </div>
 
-                    <Button className="w-full bg-accent hover:bg-accent/90">
+                    <Button
+                      className="w-full bg-accent hover:bg-accent/90"
+                      onClick={createActionPlan}
+                      disabled={creatingPlan}
+                    >
+                      {creatingPlan && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                       Create Action Plan
                     </Button>
                   </CardContent>
@@ -183,6 +249,92 @@ export default function GrowthAdvisor() {
                 </Card>
               )}
             </div>
+          </div>
+
+          {/* Affiliate Strategy Section */}
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <CardTitle className="text-lg">Affiliate Strategy</CardTitle>
+                  {!canUseAffiliate && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                      <Lock className="w-3 h-3" /> Pro / Agency
+                    </span>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {!canUseAffiliate ? (
+                  <div className="text-center py-8">
+                    <Lock className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm font-medium text-foreground mb-2">
+                      Upgrade to Pro or Agency to unlock Affiliate Strategy
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Get AI-generated affiliate strategies, outreach templates, and platform recommendations.
+                    </p>
+                    <a href="/dashboard/billing">
+                      <Button size="sm" className="bg-accent hover:bg-accent/90">
+                        Upgrade Plan
+                      </Button>
+                    </a>
+                  </div>
+                ) : affiliateData ? (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-2">Strategy</h3>
+                      <p className="text-sm text-muted-foreground">{affiliateData.strategy}</p>
+                    </div>
+                    {affiliateData.target_platforms?.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground mb-2">Target Platforms</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {affiliateData.target_platforms.map((p, i) => (
+                            <span key={i} className="text-xs bg-accent/10 text-accent px-2 py-1 rounded-full">
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {affiliateData.outreach_templates?.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground mb-3">Outreach Templates</h3>
+                        <div className="space-y-3">
+                          {affiliateData.outreach_templates.map((t, i) => (
+                            <div key={i} className="p-3 bg-muted/50 rounded-lg text-sm text-foreground">
+                              {t}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => setAffiliateData(null)}
+                      size="sm"
+                    >
+                      Regenerate
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Generate an AI-powered affiliate strategy tailored to your startup.
+                    </p>
+                    <Button
+                      className="bg-accent hover:bg-accent/90"
+                      onClick={generateAffiliateStrategy}
+                      disabled={loadingAffiliate}
+                    >
+                      {loadingAffiliate && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      Generate Affiliate Strategy
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

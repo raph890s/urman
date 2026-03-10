@@ -1,41 +1,62 @@
-import React from 'react';
-import { Plus, TrendingUp, CheckCircle, Clock } from 'lucide-react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { Plus, Lightbulb, FileText, Rocket, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import type { UserAnalyticsResponse } from '../../../lib/types';
 
-interface StatCard {
-  label: string;
-  value: string | number;
-  icon: React.ReactNode;
-  trend?: string;
-  trendUp?: boolean;
-}
+const FEATURE_LABELS: Record<string, string> = {
+  validate_idea: 'Idea Validator',
+  generate_landing_page: 'Landing Page',
+  generate_features: 'Feature Builder',
+  generate_launch_plan: 'Launch Plan',
+  generate_marketing_content: 'Marketing',
+  generate_affiliate_strategy: 'Affiliate',
+};
 
 export default function DashboardHome() {
-  const stats: StatCard[] = [
+  const [analytics, setAnalytics] = useState<UserAnalyticsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/user/analytics')
+      .then(r => r.json())
+      .then(data => { setAnalytics(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const statCards = [
     {
-      label: 'Total Projects',
-      value: 24,
-      icon: <TrendingUp className="w-6 h-6 text-accent" />,
-      trend: '+3 from last month',
-      trendUp: true,
+      label: 'Ideas Validated',
+      value: analytics?.idea_validations_count ?? 0,
+      icon: <Lightbulb className="w-6 h-6 text-accent" />,
+      href: '/dashboard/idea-validator',
     },
     {
-      label: 'Ended Projects',
-      value: 10,
-      icon: <CheckCircle className="w-6 h-6 text-green-500" />,
+      label: 'Content Generated',
+      value: analytics?.content_generated_count ?? 0,
+      icon: <FileText className="w-6 h-6 text-blue-500" />,
+      href: '/dashboard/landing-page-gen',
     },
     {
-      label: 'Running Projects',
-      value: 12,
-      icon: <Clock className="w-6 h-6 text-blue-500" />,
+      label: 'Launch Plans',
+      value: analytics?.launch_plans_count ?? 0,
+      icon: <Rocket className="w-6 h-6 text-green-500" />,
+      href: '/dashboard/growth-advisor',
     },
     {
-      label: 'Pending Projects',
-      value: 2,
-      icon: <Clock className="w-6 h-6 text-yellow-500" />,
+      label: 'Plan',
+      value: analytics?.plan_tier ? analytics.plan_tier.charAt(0).toUpperCase() + analytics.plan_tier.slice(1) : '—',
+      icon: <CreditCard className="w-6 h-6 text-yellow-500" />,
+      href: '/dashboard/billing',
     },
   ];
+
+  const Skeleton = () => (
+    <div className="animate-pulse bg-muted rounded-lg h-8 w-20" />
+  );
 
   return (
     <div className="flex-1 overflow-auto bg-background">
@@ -44,35 +65,36 @@ export default function DashboardHome() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 md:mb-8 gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 md:mb-2">Dashboard</h1>
-            <p className="text-sm md:text-base text-muted-foreground">Plan, prioritize, and accomplish your tasks with ease.</p>
+            <p className="text-sm md:text-base text-muted-foreground">Your startup command centre.</p>
           </div>
-          <Button className="bg-accent hover:bg-accent/90 gap-2 w-full sm:w-auto">
-            <Plus className="w-4 h-4" />
-            New Project
-          </Button>
+          <a href="/dashboard/idea-validator">
+            <Button className="bg-accent hover:bg-accent/90 gap-2 w-full sm:w-auto">
+              <Plus className="w-4 h-4" />
+              New Idea
+            </Button>
+          </a>
         </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-          {stats.map(stat => (
-            <Card key={stat.label}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-3xl font-bold text-foreground mb-1">{stat.value}</p>
-                    {stat.trend && (
-                      <p className={`text-xs ${stat.trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                        {stat.trend}
-                      </p>
-                    )}
+          {statCards.map(stat => (
+            <a key={stat.label} href={stat.href}>
+              <Card className="hover:border-accent/40 transition-colors cursor-pointer h-full">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-end justify-between">
+                    <div>
+                      {loading ? <Skeleton /> : (
+                        <p className="text-3xl font-bold text-foreground mb-1">{stat.value}</p>
+                      )}
+                    </div>
+                    {stat.icon}
                   </div>
-                  {stat.icon}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </a>
           ))}
         </div>
 
@@ -80,82 +102,120 @@ export default function DashboardHome() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Project Analytics */}
+            {/* AI Usage Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>Project Analytics</CardTitle>
+                <CardTitle>AI Usage — Last 6 Months</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-64 flex items-center justify-center bg-muted/50 rounded-lg">
-                  <div className="text-center">
-                    <p className="text-muted-foreground mb-2">Analytics Chart Placeholder</p>
-                    <p className="text-sm text-muted-foreground">Chart would be rendered here using a charting library</p>
+                {loading ? (
+                  <div className="h-64 flex items-center justify-center bg-muted/50 rounded-lg animate-pulse" />
+                ) : (
+                  <ResponsiveContainer width="100%" height={240}>
+                    <BarChart data={analytics?.monthly_usage ?? []} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} name="AI calls" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Feature Usage Breakdown */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Feature Usage</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="animate-pulse h-8 bg-muted rounded-lg" />
+                    ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Team Collaboration */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Team Collaboration</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { name: 'Alexandra Deft', role: 'GitHub Project Repository', status: 'Completed' },
-                    { name: 'Edwin Adeleke', role: 'Integrate User Authentication System', status: 'In Progress' },
-                    { name: 'Isaac Okunrinbodunn', role: 'Develop Search and Filter Functionality', status: 'Pending' },
-                  ].map((member, idx) => (
-                    <div key={idx} className="flex items-start justify-between py-3 border-b last:border-0">
-                      <div>
-                        <p className="font-medium text-sm text-foreground">{member.name}</p>
-                        <p className="text-xs text-muted-foreground">{member.role}</p>
-                      </div>
-                      <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${
-                        member.status === 'Completed' ? 'bg-green-100 text-green-700' :
-                        member.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                        'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {member.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Current Tasks */}
-            <Card>
-              <CardHeader className="flex items-center justify-between">
-                <CardTitle className="text-lg">Current Tasks</CardTitle>
-                <span className="text-sm text-muted-foreground">Done 30%</span>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {[
-                    { title: 'Product Review for UI Market', status: 'In progress', time: '4h' },
-                    { title: 'UX Research for Product', status: 'On hold', time: '8h' },
-                    { title: 'App design and development', status: 'Done', time: '32h' },
-                  ].map((task, idx) => (
-                    <div key={idx} className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <input type="checkbox" className="w-4 h-4" defaultChecked={task.status === 'Done'} />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{task.title}</p>
-                          <p className="text-xs text-muted-foreground">{task.status}</p>
+                ) : analytics?.feature_usage?.length ? (
+                  <div className="space-y-4">
+                    {analytics.feature_usage.slice(0, 5).map(f => {
+                      const max = analytics.feature_usage[0].count;
+                      return (
+                        <div key={f.feature_name}>
+                          <div className="flex justify-between items-center mb-1">
+                            <p className="text-sm font-medium text-foreground">
+                              {FEATURE_LABELS[f.feature_name] ?? f.feature_name}
+                            </p>
+                            <p className="text-sm text-muted-foreground">{f.count} calls</p>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2">
+                            <div
+                              className="bg-accent rounded-full h-2 transition-all"
+                              style={{ width: `${(f.count / max) * 100}%` }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{task.time}</span>
-                    </div>
-                  ))}
-                </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No AI features used yet. Try the{' '}
+                    <a href="/dashboard/idea-validator" className="text-accent underline">Idea Validator</a>!
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
 
           {/* Right Column */}
           <div className="space-y-8">
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[
+                  { label: 'Validate an Idea', href: '/dashboard/idea-validator' },
+                  { label: 'Generate Landing Page', href: '/dashboard/landing-page-gen' },
+                  { label: 'Generate Marketing Copy', href: '/dashboard/marketing-gen' },
+                  { label: 'Build Launch Plan', href: '/dashboard/growth-advisor' },
+                ].map(action => (
+                  <a key={action.label} href={action.href}>
+                    <Button variant="outline" size="sm" className="w-full justify-start text-left">
+                      {action.label}
+                    </Button>
+                  </a>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Plan Limits */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Plan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="animate-pulse h-8 bg-muted rounded-lg" />
+                ) : (
+                  <div className="text-center">
+                    <p className="text-4xl font-bold text-accent mb-1 capitalize">
+                      {analytics?.plan_tier ?? 'Free'}
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">Current plan</p>
+                    {analytics?.plan_tier === 'free' && (
+                      <a href="/dashboard/billing">
+                        <Button size="sm" className="bg-accent hover:bg-accent/90 w-full">
+                          Upgrade
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Reminders */}
             <Card>
               <CardHeader>
@@ -164,46 +224,12 @@ export default function DashboardHome() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="p-3 bg-accent/10 rounded-lg border border-accent/20">
-                    <p className="text-sm font-medium text-foreground mb-1">Meeting with Arc Company</p>
-                    <p className="text-xs text-muted-foreground">12:00 pm - 04:00 pm</p>
-                  </div>
-                  <div className="text-center py-8">
-                    <p className="text-sm text-muted-foreground">No more reminders today</p>
+                    <p className="text-sm font-medium text-foreground mb-1">Complete your launch plan</p>
+                    <p className="text-xs text-muted-foreground">Growth Advisor → Create Action Plan</p>
                   </div>
                   <Button variant="outline" className="w-full" size="sm">
                     Add Reminder
                   </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Project Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Project Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-48 flex items-center justify-center bg-muted/50 rounded-lg">
-                  <div className="text-center">
-                    <p className="text-4xl font-bold text-accent mb-2">41%</p>
-                    <p className="text-sm text-muted-foreground">Overall completion</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Time Tracker</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center">
-                  <p className="text-4xl font-mono font-bold text-foreground mb-4">01:24:08</p>
-                  <div className="flex gap-2 justify-center">
-                    <Button size="sm" variant="outline">⏸</Button>
-                    <Button size="sm" variant="outline">⏹</Button>
-                  </div>
                 </div>
               </CardContent>
             </Card>
