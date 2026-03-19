@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Home, Lightbulb, Zap, BarChart3, Settings, HelpCircle, LogOut, TrendingUp } from 'lucide-react';
+import { ChevronRight, Home, Lightbulb, Zap, BarChart3, Settings, HelpCircle, LogOut, TrendingUp, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -62,6 +62,12 @@ const navItems: NavItem[] = [
     label: 'Analytics',
     icon: <BarChart3 className="w-5 h-5" />,
     href: '/dashboard/analytics',
+  },
+  {
+    id: 'mcdo-video',
+    label: "McD's Marketing Video",
+    icon: <Film className="w-5 h-5" />,
+    href: '/dashboard/mcdo-video',
   },
 ];
 

@@ -19,6 +19,7 @@ import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
 import FeatureBuilder from "./pages/FeatureBuilder";
 import GrowthAdvisor from "./pages/GrowthAdvisor";
+import McDonaldsMarketingVideo from "./pages/McDonaldsMarketingVideo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
           <Route path="/dashboard/settings" element={<Settings />} />
           <Route path="/dashboard/feature-builder" element={<FeatureBuilder />} />
           <Route path="/dashboard/growth-advisor" element={<GrowthAdvisor />} />
+          <Route path="/dashboard/mcdo-video" element={<McDonaldsMarketingVideo />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
